@@ -1,0 +1,36 @@
+---
+  - name: "check rpcsvc"
+    stat: 
+      path: "/usr/include/rpcsvc/rstat.h"
+    register: check_rpcsvc_res
+
+  - name: "RedHat8 famliy is copy rpcsvc-proto-1.4.2.tar.xz to /tmp"
+    when: check_rpcsvc_res.stat.exists != True
+    copy:
+      src: "../pkg/rpcsvc-proto-1.4.2.tar.xz"
+      dest: "/tmp"
+  
+  - name: "RedHat8 famliy is unarchive rpcsvc-proto-1.4.2.tar.xz"
+    when: check_rpcsvc_res.stat.exists != True
+    unarchive:
+      src: "/tmp/rpcsvc-proto-1.4.2.tar.xz"
+      dest: "/tmp"
+      copy: "no"
+  
+  - name: "RedHat8 famliy is build&install rpcsvc-proto"
+    when: check_rpcsvc_res.stat.exists != True
+    shell: "cd /tmp/rpcsvc-proto-1.4.2 && ./configure && make -j $(cat /proc/cpuinfo|grep 'processor'|wc -l) && make install"
+
+  - name: "rm rpcsvc-proto package"
+    when: check_rpcsvc_res.stat.exists != True
+    file:
+      path: "/tmp/rpcsvc-proto-1.4.2.tar.xz"
+      state: absent
+
+  - name: "rm rpcsvc-proto build_dir"
+    when: check_rpcsvc_res.stat.exists != True
+    file:
+      path: "/tmp/rpcsvc-proto-1.4.2"
+      state: absent
+
+...

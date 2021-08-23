@@ -1,0 +1,21 @@
+
+[mysqld@{{mysql_port}}]
+basedir={{mysql_base_dir}}
+datadir={{mysql_data_dir}}
+tmpdir={{mysql_tmp_dir}}
+socket={{mysql_socket_dir}}/mysql-{{mysql_port}}.sock
+port={{mysql_port}}
+symbolic-links=0
+max_allowed_packet = 104857600
+lower_case_table_names = 1
+innodb_strict_mode=0
+innodb_log_file_size=1024M
+innodb_buffer_pool_size=1G
+max_connections=1000
+character_set_server=utf8mb4
+log-error={{mysql_logs_dir}}/mysql_err-{{mysql_port}}.log
+pid-file={{mysql_pid_dir}}/mysqld-{{mysql_port}}.pid
+
+[mysql@{{mysql_port}}]
+socket={{mysql_socket_dir}}/mysql-{{mysql_port}}.sock
+default-character-set=utf8mb4

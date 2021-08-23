@@ -1,0 +1,23 @@
+---
+  - hosts: mysql
+    remote_user: root
+    become_user: root
+    become: yes
+    vars_files:
+      - ./config.yaml
+      - ./vars/mysql.yaml
+    tasks:
+      - name: Create Application User
+        import_tasks: comm/create_user.yaml
+
+      - name: check  runtime Environment
+        import_tasks: comm/install_depend.yaml
+
+      - name: RedHat8 famliy is install depend package
+        when: ansible_distribution_major_version=='8' and ansible_distribution_file_variety=='RedHat'
+        import_tasks: comm/install_rpcsvc_proto.yaml
+      
+      - name: "install mysql"
+        import_tasks: comm/install_mysql.yaml
+
+...

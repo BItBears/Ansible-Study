@@ -1,0 +1,114 @@
+---
+  - name: "remove mariadb for redhat"
+    yum: 
+      name: "mariadb*"
+      state: absent
+    ignore_errors: True
+
+  - name: "remove mariadb for debian"
+    apt:
+      name: "mariadb*"
+      state: absent
+    ignore_errors: True
+pkg-config
+  - name: "chek pkg-config" 
+    shell: "pkg-config --version"
+    register: check_pkgc_res
+    ignore_errors: True
+  - name: "pkg-config is not install,exit!"
+    when: check_pkgc_res is failed
+    fail:
+      msg: "pkg-config is not install or failed,please install pkg-config!"
+      
+  - name: "chek gcc" 
+    shell: "gcc --version"
+    register: check_gcc_res
+    ignore_errors: True
+  - name: "gcc is not install,exit!"
+    when: check_gcc_res is failed
+    fail:
+      msg: "gcc is not install or failed,please install gcc!"
+
+  - name: "chek gcc-c++" 
+    shell: "g++ --version"
+    register: check_gpp_res
+    ignore_errors: True
+  - name: "gcc-c++ is not install,exit!"
+    when: check_gpp_res is failed
+    fail:
+      msg: "gcc-c++ is not install or failed,please install gcc-c++!"
+
+  - name: "chek make" 
+    shell: "make --version"
+    register: check_make_res
+    ignore_errors: True
+  - name: "make is not install,exit!"
+    when: check_make_res is failed
+    fail:
+      msg: "make is not install or failed,please install make!"
+
+  - name: "chek cmake" 
+    shell: "cmake --version"
+    register: check_cmake_res
+    ignore_errors: True
+  - name: "cmake is not install,exit!"
+    when: check_cmake_res is failed
+    fail:
+      msg: "cmake is not install or failed,please install cmake!"
+  
+  - name: "check ncurses"
+    stat: 
+      path: "/usr/lib/libncurses.so"
+    register: check_ncurses_res
+
+  - name: "copy ncurses package" 
+    when: check_ncurses_res.stat.exists != True
+    copy:
+      src: "../pkg/ncurses-6.2.tar.gz"
+      dest: "/tmp/"
+      owner: "root"
+  
+  - name: "Build Ncurses and install Ncurses"
+    when: check_ncurses_res.stat.exists != True
+    shell: "cd /tmp && tar zxvf ncurses-6.2.tar.gz && cd ncurses-6.2 && ./configure --with-shared --without-debug --without-ada --enable-overwrite && make -j $(cat /proc/cpuinfo|grep 'processor'|wc -l) && make install"
+
+  - name: "rm ncurses package"
+    when: check_ncurses_res.stat.exists != True
+    file:
+      path: "/tmp/ncurses-6.2.tar.gz"
+      state: absent
+
+  - name: "rm ncurses build_dir"
+    when: check_ncurses_res.stat.exists != True
+    file:
+      path: "/tmp/ncurses-6.2"
+      state: absent
+
+  - name: "check ssl"
+    stat: 
+      path: "{{mysql_ssl_dir}}/bin/openssl"
+    register: check_ssl_res
+
+  - name: "copy OpenSSL package" 
+    when: check_ssl_res.stat.exists != True
+    copy:
+      src: "../pkg/openssl-1.1.1k.tar.gz"
+      dest: "/tmp/"
+      owner: "root"
+  
+  - name: "Build OpenSSL and install OpenSSL"
+    when: check_ssl_res.stat.exists != True
+    shell: "cd /tmp && tar zxvf openssl-1.1.1k.tar.gz && cd openssl-1.1.1k && ./config --prefix={{mysql_ssl_dir}} && make -j $(cat /proc/cpuinfo|grep 'processor'|wc -l) && make install"
+  
+  - name: "rm OpenSSL package"
+    when: check_ssl_res.stat.exists != True
+    file:
+      path: "/tmp/openssl-1.1.1k.tar.gz"
+      state: absent
+
+  - name: "rm OpenSSL build_dir"
+    when: check_ssl_res.stat.exists != True
+    file:
+      path: "/tmp/openssl-1.1.1k"
+      state: absent
+...

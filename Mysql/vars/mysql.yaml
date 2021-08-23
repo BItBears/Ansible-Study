@@ -1,0 +1,15 @@
+mysql_version: 5.7.34
+mysql_gversion: 5
+mysql_port: 3306
+mysql_name: "root"
+mysql_login_ip: "%"
+mysql_root_password: "BitBears@2021"
+mysql_data_root: "/data/mysql"
+mysql_base_dir: "{{app_root_dir}}/mysql_{{mysql_version}}"
+mysql_data_dir: "{{mysql_data_root}}/mysql_{{mysql_version}}_{{mysql_port}}/data"
+mysql_tmp_dir: "{{mysql_data_root}}/mysql_{{mysql_version}}_{{mysql_port}}/temp"
+mysql_logs_dir: "{{mysql_data_root}}/logs"
+mysql_pid_dir:  "{{mysql_base_dir}}/pids"
+mysql_socket_dir: "{{mysql_base_dir}}/sock"
+mysql_cnf_file: "/etc/my.cnf"
+mysql_ssl_dir: "{{mysql_base_dir}}/myopenssl"

@@ -1,0 +1,27 @@
+cmake  .  -DCMAKE_INSTALL_PREFIX={{mysql_base_dir}} \
+-DSYSCONFDIR=/etc \
+-DMYSQL_USER={{app_user}} \
+-DMYSQL_TCP_PORT=3306 \
+-DSYSTEMD_PID_DIR={{mysql_pid_dir}} \
+-DMYSQL_UNIX_ADDR={{mysql_socket_dir}}/mysql-3306.sock \
+-DWITH_SSL={{mysql_ssl_dir}} \
+-DWITH_XTRADB_STORAGE_ENGINE=1 \
+-DWITH_INNOBASE_STORAGE_ENGINE=1 \
+-DWITH_PARTITION_STORAGE_ENGINE=1 \
+-DWITH_BLACKHOLE_STORAGE_ENGINE=1 \
+-DWITH_MYISAM_STORAGE_ENGINE=1 \
+-DWITH_READLINE=1 \
+-DENABLED_LOCAL_INFILE=1 \
+-DWITH_EXTRA_CHARSETS=1 \
+-DDEFAULT_CHARSET=utf8mb4 \
+-DDEFAULT_COLLATION=utf8_general_ci \
+-DEXTRA_CHARSETS=all \
+-DWITH_BIG_TABLES=1 \
+-DWITH_DEBUG=0 \
+-DDOWNLOAD_BOOST=1 \
+-DWITH_BOOST=./boost \
+-DWITH_SYSTEMD=1
+if [ $?==0 ] ;then
+    make -j $(cat /proc/cpuinfo|grep 'processor'|wc -l) 
+    make install
+fi

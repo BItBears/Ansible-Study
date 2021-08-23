@@ -1,0 +1,224 @@
+---
+  - name: Create a mysql_base_directory if it does not exist
+    file: 
+      path: "{{mysql_base_dir}}"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+
+  - name: Create a mysql_data_root_directory if it does not exist
+    file:
+      path: "{{mysql_data_root}}"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+
+  - name: Create a mysql_data_directory if it does not exist
+    file:
+      path: "{{mysql_data_dir}}"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+
+  - name: Create a mysql_logs_directory if it does not exist
+    file:
+      path: "{{mysql_logs_dir}}"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+  
+  - name: Create a mysql_temp_directory if it does not exist
+    file:
+      path: "{{mysql_tmp_dir}}"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+
+  - name: Create a mysql_pid_directory if it does not exist
+    file:
+      path: "{{mysql_pid_dir}}"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+
+  - name: Create a mysql_socket_directory if it does not exist
+    file:
+      path: "{{mysql_socket_dir}}"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+
+  - name: Create a mysql_files_directory if it does not exist
+    file:
+      path: "/var/lib/mysql-files"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+      recurse: yes
+
+  - name: "check mysqld"
+    stat: 
+      path: "{{mysql_base_dir}}/bin/mysqld"
+    register: check_mysqld_res
+
+  - name: Copy Mysql package
+    when: check_mysqld_res.stat.exists != True
+    copy:
+      src: "../pkg/mysql-{{mysql_version}}.tar.gz"
+      dest: "/tmp/"
+      owner: "root"
+
+  - name: unarchive Mysql source package to /tmp/
+    when: check_mysqld_res.stat.exists != True
+    unarchive:
+      src: "/tmp/mysql-{{mysql_version}}.tar.gz"
+      dest: "/tmp"
+      copy: "no"
+
+  - name: "generate build script to /tmp/mysql-{{mysql_version}}/build_mysql.sh"
+    when: check_mysqld_res.stat.exists != True
+    template:
+      src: "../templates/build_mysql.sh.bitbears"
+      dest: "/tmp/mysql-{{mysql_version}}/build_mysql.sh"
+
+  - name: "run /tmp/mysql-{{mysql_version}}/build_mysql.sh"
+    when: check_mysqld_res.stat.exists != True
+    shell: "cd /tmp/mysql-{{mysql_version}} && /bin/sh build_mysql.sh"
+    register: running_status
+    ignore_errors: True
+
+  - name: "stop&exit build"
+    when: running_status is failed
+    fail:
+      msg: "build failed!"
+
+  - name: "rm mysqld package"
+    when: check_mysqld_res.stat.exists != True
+    file:
+      path: "/tmp/mysql-{{mysql_version}}.tar.gz"
+      state: absent
+
+  - name: "rm mysqld build_dir"
+    when: check_mysqld_res.stat.exists != True
+    file:
+      path: "/tmp/mysql-{{mysql_version}}"
+      state: absent
+  
+  - name: "chown directory ownner"
+    when: check_mysqld_res.stat.exists != True
+    shell: "chown -R {{app_user}}.{{app_group}} {{mysql_base_dir}}"
+  
+  - name: "check /usr/lib/systemd/system"
+    stat: 
+      path: "/usr/lib/systemd/system"
+    register: check_systemd_res
+
+  - name: Create a system if it does not exist
+    when: check_systemd_res.stat.exists !=True
+    file:
+      path: "/usr/lib/systemd/system"
+      state: directory
+      mode: '0755'
+      owner: "root"
+      group: "root"
+      recurse: yes
+
+  - name: "generate Service unit to /usr/lib/systemd/system/mysqld@.service"
+    template:
+      src: "../templates/mysqld@.service.bitbears"
+      dest: "/usr/lib/systemd/system/mysqld@.service"
+
+  - name: Create a tmp if it does not exist
+    file:
+      path: "{{mysql_base_dir}}/bitbears_tmp"
+      state: directory
+      mode: '0755'
+      owner: "{{app_user}}"
+      group: "{{app_group}}"
+
+  - name: "check mysqld"
+    stat: 
+      path: "{{mysql_base_dir}}/bitbears_tmp/my.cnf.{{mysql_port}}"
+    register: check_cnf_res
+
+  - name: "generate configure file to tmp"
+    when: check_cnf_res.stat.exists !=True
+    template:
+      src: "../templates/my.cnf.bitbears"
+      dest: "{{mysql_base_dir}}/bitbears_tmp/my.cnf.{{mysql_port}}"
+  
+  - name: "append conf to /etc/my.cnf"
+    when: check_cnf_res.stat.exists !=True
+    shell: "cat {{mysql_base_dir}}/bitbears_tmp/my.cnf.{{mysql_port}} >>/etc/my.cnf"
+    register: append_status
+  
+  - name: "append conf to /etc/my.cnf failed!"
+    when: append_status is failed
+    fail:
+      msg: "append conf to /etc/my.cnf failed!"
+  
+  - name: "is exists ibdata1"
+    stat:
+      path: "{{mysql_data_dir}}/ibdata1" 
+    register: ibdata1_status
+
+  - name: "systemd reload mysqld unit"
+    systemd:
+      daemon_reload: yes
+
+  - name: "start and enable  mysqld@{{mysql_port}}"
+    systemd:
+      name: "mysqld@{{mysql_port}}"
+      state: started
+      enabled: True
+  
+  - name: "get temp password"
+    when: ibdata1_status.stat.exists !=True and check_cnf_res.stat.exists !=True
+    shell: "grep 'root@localhost' {{mysql_logs_dir}}/mysql_err-{{mysql_port}}.log |tail -1|cut -f4 -d:|sed s/[[:space:]]//g"
+    register: mysql_temp_password
+
+  - name: "check PATH"
+    shell: "grep '{{mysql_base_dir}}' /etc/profile |wc -l"
+    register: path_status
+  
+  - name: "configure PATH"
+    when: path_status.stdout=='0'
+    shell: "echo 'PATH={{mysql_base_dir}}/bin:${PATH}&& export PATH' >>/etc/profile"
+
+  - name: "change root@local password"
+    when: ibdata1_status.stat.exists !=True and check_cnf_res.stat.exists !=True
+    shell: "{{mysql_base_dir}}/bin/mysqladmin -uroot -p'{{mysql_temp_password.stdout}}' -S {{mysql_socket_dir}}/mysql-{{mysql_port}}.sock password '{{mysql_root_password}}'"
+    register: change_local_status
+
+  - name: "generate create_user.sql file to tmp"
+    when: ibdata1_status.stat.exists !=True and check_cnf_res.stat.exists !=True
+    template:
+      src: "../templates/create_user.sql.bitbears"
+      dest: "/tmp/create_user.sql"
+  
+  - name: "create '{{mysql_name}}@{{mysql_login_ip}}'"
+    when: ibdata1_status.stat.exists !=True and check_cnf_res.stat.exists !=True
+    shell: "{{mysql_base_dir}}/bin/mysql -uroot -p'{{mysql_root_password}}' -S {{mysql_socket_dir}}/mysql-{{mysql_port}}.sock </tmp/create_user.sql"
+  
+  - name: "rm /tmp/create_user.sql"
+    when: ibdata1_status.stat.exists !=True and check_cnf_res.stat.exists !=True
+    file:
+      path: "/tmp/create_user.sql"
+      state: absent
+
+...

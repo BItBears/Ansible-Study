@@ -1,0 +1,27 @@
+---
+ - name: "check group status"
+   shell: "grep '{{app_group}}:x' /etc/group|wc -l"
+   register: group_status
+
+ - name: create appliation group
+   when: group_status.stdout=='0'
+   group:
+    name: "{{app_group}}"
+    state: present
+    gid: "{{app_gid}}"
+  
+ - name: "check user status"
+   shell: "grep '{{app_user}}:x' /etc/passwd|wc -l"
+   register: user_status
+    
+ - name: create user "{{app_user}}"
+   when: user_status.stdout=='0'
+   user:
+    name: "{{app_user}}"
+    createhome: no
+    shell: "/bin/false"
+    state: present
+    uid: "{{app_uid}}"
+    group: "{{app_group}}"
+  
+...

@@ -1,0 +1,5 @@
+app_user: mysql
+app_group: mysql
+app_gid: 6000
+app_uid: 6000
+app_root_dir: /opt
